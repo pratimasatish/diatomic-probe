@@ -11,6 +11,7 @@ data = np.genfromtxt('/home/pratima/Nanoparticle-Rotation/diatomic-probe/backbon
 bottom = np.genfromtxt('/home/pratima/Nanoparticle-Rotation/diatomic-probe/lowerlig.data', delimiter=' ')
 # liq_hex = np.genfromtxt('/home/pratima/OleicAcidLigand/liq_solv.txt', delimiter=' ')
 liq_hex = np.genfromtxt('/home/pratima/Nanoparticle-Rotation/diatomic-probe/hex_solv.data', delimiter=' ')
+dye = np.genfromtxt('/home/pratima/Nanoparticle-Rotation/diatomic-probe/dye.data', delimiter=' ')
 x0 = data[0,1]
 y0 = data[0,2]
 z0 = data[0,3]
