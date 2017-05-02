@@ -11,7 +11,8 @@ improper_style		harmonic
 
 variable		TargetT equal 370
 
-read_data		all.lmp
+# read_data		all.lmp
+read_restart		restart.370
 
 group			CH3 type 1
 group			CH2single type 2
@@ -85,37 +86,48 @@ improper_coeff		1 2000.0 0.0
 # special_bonds  		lj 0.0 0.0 0.0
 
 # simulation parameters
-variable		xlo equal 30
-variable		xhi equal 75
-variable		ylo equal -66
-variable		yhi equal -36
-variable		zlo equal 25
-variable		zhi equal 75
+variable		xlo equal 10
+variable		xhi equal 70
+variable		ylo equal 30
+variable		yhi equal 50
+variable		zlo equal 10
+variable		zhi equal 70
 region			BulkSolv block ${xlo} ${xhi} ${ylo} ${yhi} ${zlo} ${zhi} side in units box
 variable		SolvDens equal count(solvent,BulkSolv)/((v_xhi-v_xlo)*(v_yhi-v_ylo)*(v_zhi-v_zlo))
+
+variable		x0 equal 0
+variable		x1 equal 80
+variable		y0 equal -55
+variable		y1 equal -40
+variable		z0 equal 0
+variable		z1 equal 80
+region			BottomSolv block ${x0} ${x1} ${y0} ${y1} ${z0} ${z1} side in units box
+variable		BottomDens equal count(solvent,BottomSolv)/((v_x1-v_x0)*(v_y1-v_y0)*(v_z1-v_z0))
+
 variable		TargetDens equal 0.0246
 
-thermo_style		custom step temp c_MyTemp etotal ke pe press v_SolvDens
+thermo_style		custom step temp c_MyTemp etotal ke pe press v_SolvDens v_BottomDens
 thermo			1000
 
 timestep		1
 fix			1 nometal nvt temp ${TargetT} ${TargetT} 50
 fix_modify		1 temp MyTemp
-dump			traj all xyz 500 dump.${TargetT}.xyz
+dump			traj all xyz 500 dump.restart.${TargetT}.xyz
 
 velocity		all create ${TargetT} 87287 loop geom
-fix			dens nometal ave/time 10 2000 20000 v_SolvDens
-fix			2 nometal deform 10 y vel -0.00001 units box 
-label			loopb
-  run			20000 post no
-  variable		AvgDens equal f_dens
-  if			${AvgDens}>${TargetDens} then "jump in.cool breakb"
-  jump			probe-surf.in loopb
-label			breakb
+# fix			dens nometal ave/time 10 2000 20000 v_SolvDens
+# fix			2 nometal deform 10 y vel -0.0001 units box
+# fix			2 nometal deform 10 y final -70.0 75.0 units box
+# label			loopb
+#   run			20000 post no
+#   variable		AvgDens equal f_dens
+#   if			${AvgDens}>${TargetDens} then "jump probe-surf.in breakb"
+#   jump			probe-surf.in loopb
+# label			breakb
 
 # minimize		1.0e-7 1.0e-6 1000 1000
-# run			50000
-write_restart		restart.${TargetT}
+run			100000
+write_restart		restart1.${TargetT}
 undump			traj
 unfix			1
 unfix			2
