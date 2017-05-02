@@ -12,7 +12,7 @@ improper_style		harmonic
 variable		TargetT equal 370
 
 # read_data		all.lmp
-read_restart		restart.370
+read_restart		restart2.370
 
 group			CH3 type 1
 group			CH2single type 2
@@ -43,20 +43,20 @@ pair_coeff      	3 8 0.143  3.54
 pair_coeff      	3 9 0.143  3.54
 
 pair_coeff		4 4 0.0934 3.73			# for CH=CH double bonds
-pair_coeff      	4 8 0.143  3.54
-pair_coeff      	4 9 0.143  3.54
+pair_coeff      	4 8 0.100  3.54
+pair_coeff      	4 9 0.100  3.54
 
 pair_coeff		5 5 0.042 3.88			# for C atom at ring intro
-pair_coeff      	5 8 0.143  3.54
-pair_coeff      	5 9 0.143  3.54
+pair_coeff      	5 8 0.100  3.54
+pair_coeff      	5 9 0.100  3.54
 
 pair_coeff		6 6 0.06 3.7			# for C atoms in ring with no hydrogens
-pair_coeff      	6 8 0.143  3.54
-pair_coeff      	6 9 0.143  3.54
+pair_coeff      	6 8 0.100  3.54
+pair_coeff      	6 9 0.100  3.54
 
 pair_coeff		7 7 0.101 3.695			# for C-H atoms in ring
-pair_coeff      	7 8 0.143  3.54
-pair_coeff      	7 9 0.143  3.54
+pair_coeff      	7 8 0.100  3.54
+pair_coeff      	7 9 0.100  3.54
 
 pair_coeff      	9 9 0.0    0.0			# Cd
 pair_coeff      	9 10 0.143 3.54
@@ -112,12 +112,12 @@ thermo			1000
 timestep		1
 fix			1 nometal nvt temp ${TargetT} ${TargetT} 50
 fix_modify		1 temp MyTemp
-dump			traj all xyz 500 dump.restart.${TargetT}.xyz
+dump			traj all xyz 500 dump.size.${TargetT}.xyz
 
 velocity		all create ${TargetT} 87287 loop geom
-# fix			dens nometal ave/time 10 2000 20000 v_SolvDens
+fix			dens nometal ave/time 10 2000 20000 v_SolvDens
 # fix			2 nometal deform 10 y vel -0.0001 units box
-# fix			2 nometal deform 10 y final -70.0 75.0 units box
+fix			2 solvent deform 10 y final -56.06737901906390 56.06737901906390 units box
 # label			loopb
 #   run			20000 post no
 #   variable		AvgDens equal f_dens
@@ -127,7 +127,7 @@ velocity		all create ${TargetT} 87287 loop geom
 
 # minimize		1.0e-7 1.0e-6 1000 1000
 run			100000
-write_restart		restart1.${TargetT}
+write_restart		restart.size.${TargetT}
 undump			traj
 unfix			1
 unfix			2
