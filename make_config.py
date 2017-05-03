@@ -5,6 +5,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-nx", type=int, default=20, help="number of ligands in x-direction")
 parser.add_argument("-nz", type=int, default=12, help="number of ligands in z-direction")
 parser.add_argument("-fmt", type=str, choices=["xyz", "lmp"], default='xyz', help="output format")
+parser.add_argument("-nolig", action='store_true', help="to make configuration with just dye on the surface")
 args = parser.parse_args()
 
 data = np.genfromtxt('/home/pratima/Nanoparticle-Rotation/diatomic-probe/backbone.data', delimiter=' ')
@@ -91,7 +92,10 @@ for i in range(len(dye)):
 # print sy0, min(centred_hex[:,1])
 
 if args.fmt == "xyz":
-    print "{}".format( (n_molecules - 5) * n_chain + n_molecules * 16 + 2 * n_hexatoms + n_bottom + n_dye)
+    if args.nolig:
+        print "{}".format( n_molecules * 16 + 2 * n_hexatoms + n_dye )
+    else:
+        print "{}".format( (n_molecules - 5) * n_chain + n_molecules * 16 + 2 * n_hexatoms + n_bottom + n_dye)
     print "Comment Line"
     nmol = 0
 
@@ -110,25 +114,26 @@ if args.fmt == "xyz":
         else:
             print "2	{:4.5f}	{:4.5f}	{:4.5f}".format( centred_dye[i,0], centred_dye[i,1], centred_dye[1,2] )
 
-    # atomic coordinates
-    for i in range(nx):
-        for j in range(nz):
-            coords = np.copy(centred_data)
-            # shift molecule
-            coords[:, 0] = coords[:, 0] + 4.12 * i
-            coords[:, 2] = coords[:, 2] + 6.75 * j
-
-            # skip dye position
-            if (i >= 10 and i <=14 and j == 6):
-                continue
-       
-            for k in range(n_chain):
-                if (k == n_chain-1):
-                    print "1       {:4.5f} {:4.5f} {:4.5f}".format( coords[k,0], coords[k,1], coords[k,2] )
-                else:
-                    print "2       {:4.5f} {:4.5f} {:4.5f}".format( coords[k,0], coords[k,1], coords[k,2] )
+    if not (args.nolig):
+        # atomic coordinates
+        for i in range(nx):
+            for j in range(nz):
+                coords = np.copy(centred_data)
+                # shift molecule
+                coords[:, 0] = coords[:, 0] + 4.12 * i
+                coords[:, 2] = coords[:, 2] + 6.75 * j
     
-            nmol = nmol + 1
+                # skip dye position
+                if (i >= 10 and i <=14 and j == 6):
+                    continue
+           
+                for k in range(n_chain):
+                    if (k == n_chain-1):
+                        print "1       {:4.5f} {:4.5f} {:4.5f}".format( coords[k,0], coords[k,1], coords[k,2] )
+                    else:
+                        print "2       {:4.5f} {:4.5f} {:4.5f}".format( coords[k,0], coords[k,1], coords[k,2] )
+        
+                nmol = nmol + 1
 
     # Cd-S surface coordinates
     for i in range(nx):
@@ -162,13 +167,14 @@ if args.fmt == "xyz":
         else:
             print "11	{:4.5f}	{:4.5f}	{:4.5f}".format( coords[i,0], coords[i,1], coords[i,2] )
 
-    # bottom oleic acid ligands here
-    coords = centred_bottom + np.array([0.0, 0.0, 0.0])
-    for i in range(n_bottom):
-        if ((i% (n_chain-1) ) == 0):
-            print "1       {:4.5f} {:4.5f} {:4.5f}".format( coords[i,0], coords[i,1] + -15.457550, coords[i,2] )
-        else:
-            print "2       {:4.5f} {:4.5f} {:4.5f}".format( coords[i,0], coords[i,1] + -15.457550, coords[i,2] )
+    if not (args.nolig):
+        # bottom oleic acid ligands here
+        coords = centred_bottom + np.array([0.0, 0.0, 0.0])
+        for i in range(n_bottom):
+            if ((i% (n_chain-1) ) == 0):
+                print "1       {:4.5f} {:4.5f} {:4.5f}".format( coords[i,0], coords[i,1] + -15.457550, coords[i,2] )
+            else:
+                print "2       {:4.5f} {:4.5f} {:4.5f}".format( coords[i,0], coords[i,1] + -15.457550, coords[i,2] )
 
     # bottom hex molecules here
     coords = centred_hex + np.array([0.0, -55.5 - 80, 0.0])
@@ -183,11 +189,19 @@ if args.fmt == "lmp":
 
     # beginning of LAMMPS input file
     print "LAMMPS coords for {} oleic acid-like molecules\n".format( n_molecules )
-    print "{}	atoms".format( (n_molecules - 5) * n_chain + n_molecules * 16 + 2 * n_hexatoms + n_bottom + n_dye )
-    print "{}	bonds".format( (n_molecules - 5) * n_bonds + (n_molecules - 5) + n_molecules / 2 + 2 * n_hexmolecules * n_hexbonds + n_bottommolecules * n_bonds + n_dyebonds )
-    print "{}	angles".format( (n_molecules - 5) * n_angles + 2 * n_hexmolecules * n_hexangles + n_bottommolecules * n_angles + n_dyeangles )
-    print "{}	dihedrals".format( (n_molecules - 5) * n_dihedrals + 2 * n_hexmolecules * n_hexdihedrals + n_bottommolecules * n_dihedrals + n_dyedihedrals )
-    print "{} impropers".format( n_dyeimpropers )
+    if args.nolig:
+        print "{}	atoms".format( n_molecules * 16 + 2 * n_hexatoms + n_dye )
+        print "{}	bonds".format( 2 * n_hexmolecules * n_hexbonds + n_dyebonds )
+        print "{}	angles".format( 2 * n_hexmolecules * n_hexangles + n_dyeangles )
+        print "{}	dihedrals".format( 2 * n_hexmolecules * n_hexdihedrals + n_dyedihedrals )
+        print "{} impropers".format( n_dyeimpropers )
+
+    else:
+        print "{}	atoms".format( (n_molecules - 5) * n_chain + n_molecules * 16 + 2 * n_hexatoms + n_bottom + n_dye )
+        print "{}	bonds".format( (n_molecules - 5) * n_bonds + (n_molecules - 5) + n_molecules / 2 + 2 * n_hexmolecules * n_hexbonds + n_bottommolecules * n_bonds + n_dyebonds )
+        print "{}	angles".format( (n_molecules - 5) * n_angles + 2 * n_hexmolecules * n_hexangles + n_bottommolecules * n_angles + n_dyeangles )
+        print "{}	dihedrals".format( (n_molecules - 5) * n_dihedrals + 2 * n_hexmolecules * n_hexdihedrals + n_bottommolecules * n_dihedrals + n_dyedihedrals )
+        print "{} impropers".format( n_dyeimpropers )
     
     print "11	atom types"
     print "3	bond types"
@@ -233,23 +247,24 @@ if args.fmt == "lmp":
             print "{}	{}	2	{:4.5f}	{:4.5f}	{:4.5f}".format( natom, nmol, centred_dye[i,0], centred_dye[i,1], centred_dye[1,2] )
         natom = natom + 1
 
-    for i in range(nx):
-        for j in range(nz):
-            coords = np.copy(centred_data)
-            # shift molecule
-            coords[:, 0] = coords[:, 0] + 4.12 * i
-            coords[:, 2] = coords[:, 2] + 6.75 * j
+    if not (args.nolig):
+        for i in range(nx):
+            for j in range(nz):
+                coords = np.copy(centred_data)
+                # shift molecule
+                coords[:, 0] = coords[:, 0] + 4.12 * i
+                coords[:, 2] = coords[:, 2] + 6.75 * j
 
-            if (i >= 10 and i <= 14 and j == 6):
-                continue
-        
-            for k in range(n_chain):
-                if (k == n_chain-1):
-                    print "{}	{}	1	{:4.5f}	{:4.5f}	{:4.5f}".format( natom, nmol+1, coords[k,0], coords[k,1], coords[k,2]  )
-                else:
-                    print "{}	{}	2	{:4.5f}	{:4.5f}	{:4.5f}".format( natom, nmol+1, coords[k,0], coords[k,1], coords[k,2]  )
-                natom = natom + 1
-            nmol = nmol + 1
+                if (i >= 10 and i <= 14 and j == 6):
+                    continue
+            
+                for k in range(n_chain):
+                    if (k == n_chain-1):
+                        print "{}	{}	1	{:4.5f}	{:4.5f}	{:4.5f}".format( natom, nmol+1, coords[k,0], coords[k,1], coords[k,2]  )
+                    else:
+                        print "{}	{}	2	{:4.5f}	{:4.5f}	{:4.5f}".format( natom, nmol+1, coords[k,0], coords[k,1], coords[k,2]  )
+                    natom = natom + 1
+                nmol = nmol + 1
 
     # Cd-S surface coordinates
     for i in range(nx):
@@ -300,16 +315,17 @@ if args.fmt == "lmp":
         if ((i+1)%6 == 0):
             nmol = nmol + 1
 
-    # bottom molecules here
-    coords = centred_bottom + np.array([0.0, 0.0, 0.0])
-    for i in range(n_bottom):
-        if ((i % (n_chain-1)) == 0 and i != 0):
-            print "{}	{}	1       {:4.5f} {:4.5f} {:4.5f}".format( natom, nmol, coords[i,0], coords[i,1] + -15.457550, coords[i,2] )
-        else:
-            print "{}	{}	2       {:4.5f} {:4.5f} {:4.5f}".format( natom, nmol, coords[i,0], coords[i,1] + -15.457550, coords[i,2] )
-        natom = natom + 1
-        if (i%n_chain == 0):
-            nmol = nmol + 1
+    if not (args.nolig):
+        # bottom molecules here
+        coords = centred_bottom + np.array([0.0, 0.0, 0.0])
+        for i in range(n_bottom):
+            if ((i % (n_chain-1)) == 0 and i != 0):
+                print "{}	{}	1       {:4.5f} {:4.5f} {:4.5f}".format( natom, nmol, coords[i,0], coords[i,1] + -15.457550, coords[i,2] )
+            else:
+                print "{}	{}	2       {:4.5f} {:4.5f} {:4.5f}".format( natom, nmol, coords[i,0], coords[i,1] + -15.457550, coords[i,2] )
+            natom = natom + 1
+            if (i%n_chain == 0):
+                nmol = nmol + 1
 
     # bottom hex molecules here
     coords = centred_hex + np.array([0.0, -55.5 - 80, 0.0])
@@ -353,28 +369,34 @@ if args.fmt == "lmp":
     print "24      3       22      14" 
     print "25      1       1       23"
     print "26      1       23      24" 
-    print "27      1       24      4507"
 
-    # define ligand bonds here
     nbond = 28
-    for i in range(n_molecules - 5):
-        for j in range(n_bonds):
-            first = i * n_chain + j + 1 + n_dye
-            print "{}	1	{}	{}".format( nbond, first, first + 1 )
-            nbond = nbond + 1
-  
-    # define top Cd-CH2 bonds here
-    cadmium = (n_molecules - 5) * n_chain + 1 + n_dye
-    for i in range(n_molecules - 5):
-        carbon = i * n_chain + 1 + n_dye
-        # check if ligand was removed
-        if (cadmium == 4507 or cadmium == 4531 or cadmium == 4555 or cadmium == 4579 or cadmium == 4603):
-            cadmium = cadmium + 2
-        print "{}	1	{}	{}".format( nbond, carbon, cadmium )
-        cadmium = cadmium + 2
-        nbond = nbond + 1
 
-    nat = (n_molecules - 5) * n_chain + n_dye + n_molecules * 16 + 1
+    if not (args.nolig):
+        print "27      1       24      4507"
+        # define ligand bonds here
+        for i in range(n_molecules - 5):
+            for j in range(n_bonds):
+                first = i * n_chain + j + 1 + n_dye
+                print "{}	1	{}	{}".format( nbond, first, first + 1 )
+                nbond = nbond + 1
+      
+        # define top Cd-CH2 bonds here
+        cadmium = (n_molecules - 5) * n_chain + 1 + n_dye
+        for i in range(n_molecules - 5):
+            carbon = i * n_chain + 1 + n_dye
+            # check if ligand was removed
+            if (cadmium == 4507 or cadmium == 4531 or cadmium == 4555 or cadmium == 4579 or cadmium == 4603):
+                cadmium = cadmium + 2
+            print "{}	1	{}	{}".format( nbond, carbon, cadmium )
+            cadmium = cadmium + 2
+            nbond = nbond + 1
+    
+        nat = (n_molecules - 5) * n_chain + n_dye + n_molecules * 16 + 1
+    else:
+        print "27      1       24      277"
+        nat = n_molecules * 16 + 1
+
     # define hex bonds here
     for i in range(n_hexmolecules):
         for j in range(n_hexbonds):
@@ -384,28 +406,29 @@ if args.fmt == "lmp":
             if (j == n_hexbonds - 1):
                 nat = nat + 1
 
-    # define bottom Cd-CH2 bonds here
-    cadmium = cadmium + 12
-    lig_in_row = 0
-    for i in range(n_bottommolecules):
-        carbon = nat + n_chain * i
-        print "{}	1	{}	{}".format( nbond, carbon, cadmium )
-        cadmium = cadmium + 14
-        lig_in_row = lig_in_row + 1
-        nbond = nbond + 1
-        # skip full row of cadmium atoms w/o ligands
-        if (lig_in_row == 12):
-            cadmium = cadmium + 12 * 14
-            lig_in_row = 0
-
-   # define bottom ligand bonds here
-    for i in range(n_bottommolecules):
-        for j in range(n_bonds):
-            print "{}	1	{}	{}".format( nbond, nat, nat + 1 )
+    if not (args.nolig):
+        # define bottom Cd-CH2 bonds here
+        cadmium = cadmium + 12
+        lig_in_row = 0
+        for i in range(n_bottommolecules):
+            carbon = nat + n_chain * i
+            print "{}	1	{}	{}".format( nbond, carbon, cadmium )
+            cadmium = cadmium + 14
+            lig_in_row = lig_in_row + 1
             nbond = nbond + 1
-            nat = nat + 1
-            if (j == n_bonds - 1):
+            # skip full row of cadmium atoms w/o ligands
+            if (lig_in_row == 12):
+                cadmium = cadmium + 12 * 14
+                lig_in_row = 0
+
+       # define bottom ligand bonds here
+        for i in range(n_bottommolecules):
+            for j in range(n_bonds):
+                print "{}	1	{}	{}".format( nbond, nat, nat + 1 )
+                nbond = nbond + 1
                 nat = nat + 1
+                if (j == n_bonds - 1):
+                    nat = nat + 1
 
     # define bottom hexane bonds here
     for i in range(n_hexmolecules):
@@ -451,14 +474,19 @@ if args.fmt == "lmp":
     print "30      1       23      1       2"
 
     num_angle = 31
-    # ligand angles here
-    for i in range(n_molecules - 5):
-        for j in range(n_angles):
-            first = i * n_chain + j + 1 + n_dye
-            print "{}	1	{}	{}	{}".format( num_angle, first, first + 1, first + 2 )
-            num_angle = num_angle + 1
 
-    nat = (n_molecules - 5) * n_chain + n_dye + n_molecules * 16 + 1
+    if not (args.nolig):
+        # ligand angles here
+        for i in range(n_molecules - 5):
+            for j in range(n_angles):
+                first = i * n_chain + j + 1 + n_dye
+                print "{}	1	{}	{}	{}".format( num_angle, first, first + 1, first + 2 )
+                num_angle = num_angle + 1
+    
+        nat = (n_molecules - 5) * n_chain + n_dye + n_molecules * 16 + 1
+    else:
+        nat = n_molecules * 16 + 1
+
     # hex angles defined here
     for i in range(n_hexmolecules):
         for j in range(n_hexangles):
@@ -468,14 +496,15 @@ if args.fmt == "lmp":
             if (j == n_angles - 1):
                 nat = nat + 2
 
-    # bottom angles here
-    for i in range(n_bottommolecules):
-        for j in range(n_angles):
-            print "{}	1	{}	{}	{}".format( num_angle, nat, nat + 1, nat + 2 )
-            nat = nat + 1
-            num_angle = num_angle + 1
-            if (j == n_angles - 1):
-                nat = nat + 2
+    if not (args.nolig):
+        # bottom angles here
+        for i in range(n_bottommolecules):
+            for j in range(n_angles):
+                print "{}	1	{}	{}	{}".format( num_angle, nat, nat + 1, nat + 2 )
+                nat = nat + 1
+                num_angle = num_angle + 1
+                if (j == n_angles - 1):
+                    nat = nat + 2
     
     # bottom hexane angles here
     for i in range(n_hexmolecules):
@@ -500,14 +529,19 @@ if args.fmt == "lmp":
     print "9       3       7       8       9       10"
 
     num_dihedral = 10
-    # ligand dihedrals here
-    for i in range(n_molecules - 5):
-        for j in range(n_dihedrals):
-            first = i * n_chain + j + 1 + n_dye
-            print "{}	1	{}	{}	{}	{}".format( num_dihedral, first, first + 1, first + 2, first + 3 )
-            num_dihedral = num_dihedral + 1
 
-    nat = (n_molecules - 5) * n_chain + n_dye + n_molecules * 16 + 1
+    if not (args.nolig):
+        # ligand dihedrals here
+        for i in range(n_molecules - 5):
+            for j in range(n_dihedrals):
+                first = i * n_chain + j + 1 + n_dye
+                print "{}	1	{}	{}	{}	{}".format( num_dihedral, first, first + 1, first + 2, first + 3 )
+                num_dihedral = num_dihedral + 1
+    
+        nat = (n_molecules - 5) * n_chain + n_dye + n_molecules * 16 + 1
+    else:
+        nat = n_molecules * 16 + 1
+
     # hex dihedrals here
     for i in range(n_hexmolecules):
         for j in range(n_hexdihedrals):
@@ -517,14 +551,15 @@ if args.fmt == "lmp":
             if (j == n_hexdihedrals - 1):
                 nat = nat + 3
 
-    # bottom dihedrals here
-    for i in range(n_bottommolecules):
-        for j in range(n_dihedrals):
-            print "{}	1	{}	{}	{}	{}".format( num_dihedral, nat, nat + 1, nat + 2, nat + 3 )
-            num_dihedral = num_dihedral + 1
-            nat = nat + 1
-            if (j == n_dihedrals - 1):
-                nat = nat + 3
+    if not (args.nolig):
+        # bottom dihedrals here
+        for i in range(n_bottommolecules):
+            for j in range(n_dihedrals):
+                print "{}	1	{}	{}	{}	{}".format( num_dihedral, nat, nat + 1, nat + 2, nat + 3 )
+                num_dihedral = num_dihedral + 1
+                nat = nat + 1
+                if (j == n_dihedrals - 1):
+                    nat = nat + 3
 
     # bottom hexane dihedrals here
     for i in range(n_hexmolecules):
